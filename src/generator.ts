@@ -1,5 +1,3 @@
-const GeneratorFunction = function* () {}.constructor;
-
 // "ACORN" random number generator
 // https://grokipedia.com/page/acorn_random_number_generator
 const M = 2 ** 30; // modulus; increase the degree for more precision
@@ -13,14 +11,14 @@ for (let x = 0; x < maxOrder; x++) {
 }
 const seedsTwo: number[] = [];
 for (let x = 0; x < maxOrder; x++) {
-    seedsTwo.push(baseSeed + x * 2);
+    seedsTwo.push(baseSeed + x * 4); // 4 for different values
 }
-function* GenerateSeed() 
+function* GenerateRandNum() 
 {
     for (let x = 0; x < maxOrder; x++) 
     {
-        seedsOne[x] = (seedsOne[x] + seedsTwo[x]);
-        seedsTwo[x] = (seedsTwo[x] + seedsOne[x]);
+        seedsOne[x] = (seedsOne[x + 1] + seedsOne[x]);
+        seedsTwo[x] = (seedsTwo[x + 1] + seedsTwo[x]);
         if (seedsTwo[x] >= M) 
         {
             seedsTwo[x] -= M;
@@ -31,7 +29,13 @@ function* GenerateSeed()
             seedsOne[x] -= M;
         }
     }
-    let randomNumber = (seedsOne[maxOrder - 1] + seedsTwo[maxOrder - 1] / M) / M;
+    let randomNumber = (seedsOne[maxOrder] + seedsTwo[maxOrder] / M) / M;
 
     yield randomNumber;
+}
+function* GenerateRandNumInf() 
+{
+    while (true) {
+        yield* GenerateRandNum();
+    } 
 }
