@@ -1,2 +1,0 @@
-const GeneratorFunction = function* () {}.constructor;
-
