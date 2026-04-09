@@ -6,15 +6,12 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, options?: Memo
     return function(...args: Parameters<T>): ReturnType<T> 
     {
         const key = JSON.stringify(args);
-
+        
         if (cache.has(key)) 
         {
             // todo: need to check if an eviction policy is size based
             // options?.maxCache && options.evictionPolicy != EvictionPolicy.TimeBased; 
-            if (cache.size >= maxCache)
-            {
-                EvictCache(cache, options?.evictionPolicy ?? EvictionPolicy.FIFO, options, { key, accessCount: 0 });
-            }
+            // EvictCache(cache, options?.evictionPolicy ?? EvictionPolicy.LRU, options, { key, accessCount: 0 });
             return cache.get(key);
         }
         if (cache.size >= maxCache) 
@@ -36,8 +33,12 @@ type MemoizeOptions = {
 
 };
 type CacheInfo = {
+    leastUsedEntry?: string;
+    cache: Map<string, ReturnType<T>>();
+}
+type EntryInfo = {
     key: string;
-    accessCount: number;
+    useCount: number;
     lifetime?: number;
 }
 enum EvictionPolicy 
@@ -48,15 +49,54 @@ enum EvictionPolicy
     TimeBased,
     Custom
 }
-function EvictCache(cache: Map<string, any>, policy: EvictionPolicy, options?: MemoizeOptions, info?: CacheInfo)
+function EvictCache(cache: Map<string, any>, policy: EvictionPolicy, options?: MemoizeOptions, info?: EntryInfo)
 {
     switch (policy)
     {
-        case EvictionPolicy.FIFO:
+        case EvictionPolicy.FIFO: {
             const firstKey = cache.keys().next().value;
             cache.delete(firstKey);
             break;
-        case EvictionPolicy.LRU:
+        }
+        case EvictionPolicy.LRU: {
             const entry = cache.get(info.key)!;
+            cache.delete(info.key);
+            cache.set(info.key, entry);
+            if (cache.size > options?.maxCache!)
+            {
+                const firstKey = cache.keys().next().value;
+                cache.delete(firstKey);
+            }
+            break;
+        }
+        case EvictionPolicy.LFU: {
+            // here we would sort cache entries by amount of usage 
+            // if usage count is the same the LRU policy would be applied
+            // instead of the LRU type implementation we can just store the oldest entry with the least 
+            // usage count and evict it
+            let leastUsedEntry;
+            // let secondLeastUsedEntry;
+            const entry = cache.get(info.key)!;
+            info.useCount += 1;
+            if (!leastUsedEntry || entry.useCount < leastUsedEntry.useCount)
+            {
+                // secondLeastUsedEntry = leastUsedEntry;
+                leastUsedEntry = entry;
+            }
+            if (cache.size > options?.maxCache!)
+            {
+                leastUsedEntry.useCount = 0;
+                cache.delete(leastUsedEntry.key);
+                // leastUsedEntry = secondLeastUsedEntry;
+                // secondLeastUsedEntry = undefined;
+            }
+            break;
+        }
+        case EvictionPolicy.TimeBased: {
+
+            if (options?.maxCache && cache.size > options.maxCache) {
+
+            }
+        }
     }
 }
