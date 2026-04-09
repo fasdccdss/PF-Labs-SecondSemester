@@ -1,27 +1,32 @@
 export function memoize<T extends (...args: any[]) => any>(fn: T, options?: MemoizeOptions): T
 {
     const maxCache = options?.maxCache ?? Infinity;
-    const cache = new Map<string, ReturnType<T>>();
+    const cache: Cache<ReturnType<T>> = {
+        entries: new Map<string, EntryInfo<ReturnType<T>>>()
+    };
+    const entries = cache.entries;
+    // const cache = new Map<string, ReturnType<T>>();
 
     return function(...args: Parameters<T>): ReturnType<T> 
     {
         const key = JSON.stringify(args);
-        
-        if (cache.has(key)) 
+        let entry;
+
+        if (entry = entries.get(key)) 
         {
             // todo: need to check if an eviction policy is size based
             // options?.maxCache && options.evictionPolicy != EvictionPolicy.TimeBased; 
             // EvictCache(cache, options?.evictionPolicy ?? EvictionPolicy.LRU, options, { key, accessCount: 0 });
-            return cache.get(key);
+            return entry;
         }
-        if (cache.size >= maxCache) 
+        if (entries.size >= maxCache) 
         {
-            const firstKey = cache.keys().next().value;
-            cache.delete(firstKey);
+            const firstKey = entries.keys().next().value;
+            entries.delete(firstKey);
         }
         
         const result = fn(...args);
-        cache.set(key, result);
+        entries.set(key, { value: result });
         return result;
     } as T;
 }
@@ -30,15 +35,14 @@ type MemoizeOptions = {
 
     evictionPolicy?: EvictionPolicy;
     lifetimeLimit?: number; // for TimeBased eviction case
-
 };
-type CacheInfo = {
+type Cache<T> = {
     leastUsedEntry?: string;
-    cache: Map<string, ReturnType<T>>();
+    entries: Map<string, EntryInfo<T>>;
 }
-type EntryInfo = {
-    key: string;
-    useCount: number;
+type EntryInfo<T> = {
+    value: T;
+    useCount?: number;
     lifetime?: number;
 }
 enum EvictionPolicy 
@@ -49,23 +53,26 @@ enum EvictionPolicy
     TimeBased,
     Custom
 }
-function EvictCache(cache: Map<string, any>, policy: EvictionPolicy, options?: MemoizeOptions, info?: EntryInfo)
+function EvictCache(cache: Cache<ReturnType<any>>, key: string, entry: EntryInfo<ReturnType<any>>, options?: MemoizeOptions)
 {
+    const policy = options?.evictionPolicy ?? EvictionPolicy.LRU;
+    const entries = cache.entries;
+    // const entry = entries.get(key)!;
     switch (policy)
     {
         case EvictionPolicy.FIFO: {
-            const firstKey = cache.keys().next().value;
-            cache.delete(firstKey);
+            const firstKey = entries.keys().next().value;
+            entries.delete(firstKey);
             break;
         }
         case EvictionPolicy.LRU: {
-            const entry = cache.get(info.key)!;
-            cache.delete(info.key);
-            cache.set(info.key, entry);
-            if (cache.size > options?.maxCache!)
+            // const entry = entries.get(key)!;
+            entries.delete(key);
+            entries.set(info.key, entry);
+            if (entries.size > options?.maxCache!)
             {
-                const firstKey = cache.keys().next().value;
-                cache.delete(firstKey);
+                const firstKey = entries.keys().next().value;
+                entries.delete(firstKey);
             }
             break;
         }
@@ -76,17 +83,17 @@ function EvictCache(cache: Map<string, any>, policy: EvictionPolicy, options?: M
             // usage count and evict it
             let leastUsedEntry;
             // let secondLeastUsedEntry;
-            const entry = cache.get(info.key)!;
-            info.useCount += 1;
+            const entry = entries.get(info.key)!;
+            entry.info.useCount += 1;
             if (!leastUsedEntry || entry.useCount < leastUsedEntry.useCount)
             {
                 // secondLeastUsedEntry = leastUsedEntry;
                 leastUsedEntry = entry;
             }
-            if (cache.size > options?.maxCache!)
+            if (entries.size > options?.maxCache!)
             {
                 leastUsedEntry.useCount = 0;
-                cache.delete(leastUsedEntry.key);
+                entries.delete(leastUsedEntry.key);
                 // leastUsedEntry = secondLeastUsedEntry;
                 // secondLeastUsedEntry = undefined;
             }
@@ -94,7 +101,7 @@ function EvictCache(cache: Map<string, any>, policy: EvictionPolicy, options?: M
         }
         case EvictionPolicy.TimeBased: {
 
-            if (options?.maxCache && cache.size > options.maxCache) {
+            if (options?.maxCache && entries.size > options.maxCache) {
 
             }
         }
