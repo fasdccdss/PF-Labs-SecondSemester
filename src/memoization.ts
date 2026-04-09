@@ -2,6 +2,7 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, options?: Memo
 {
     const maxCache = options?.maxCache ?? Infinity;
     const cache: Cache<ReturnType<T>> = {
+        frequencyBin: new Map<number, Map<string, EntryInfo<ReturnType<T>>>>(),
         entries: new Map<string, EntryInfo<ReturnType<T>>>()
     };
     const entries = cache.entries;
@@ -16,7 +17,7 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, options?: Memo
         {
             // todo: need to check if an eviction policy is size based
             // options?.maxCache && options.evictionPolicy != EvictionPolicy.TimeBased; 
-            entry.key = key;
+            // entry.key = key;
             // EvictCache(cache, options?.evictionPolicy ?? EvictionPolicy.LRU, options, { key, accessCount: 0 });
             return entry;
         }
@@ -27,7 +28,7 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, options?: Memo
         }
         
         const result = fn(...args);
-        entries.set(key, { value: result });
+        entries.set(key, { value: result, key });
         return result;
     } as T;
 }
@@ -38,13 +39,13 @@ type MemoizeOptions = {
     lifetimeLimit?: number; // for TimeBased eviction case
 };
 type Cache<T> = {
-    leastUsedEntry?: EntryInfo<T>;
-    leastUsageCount?: number;
+    smallestUseCount?: number; // for LFU eviction case
+    frequencyBin: Map<number, Map<string, EntryInfo<T>>>; // for LFU eviction case 
     entries: Map<string, EntryInfo<T>>;
 }
 type EntryInfo<T> = {
     value: T;
-    key?: string;
+    key: string;
     useCount?: number;
     lifetime?: number;
 }
@@ -56,7 +57,7 @@ enum EvictionPolicy
     TimeBased,
     Custom
 }
-function EvictCache(cache: Cache<ReturnType<any>>, entry: EntryInfo<ReturnType<any>>, options?: MemoizeOptions)
+function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options?: MemoizeOptions)
 {
     const policy = options?.evictionPolicy ?? EvictionPolicy.LRU;
     const entries = cache.entries;
@@ -81,32 +82,35 @@ function EvictCache(cache: Cache<ReturnType<any>>, entry: EntryInfo<ReturnType<a
             break;
         }
         case EvictionPolicy.LFU: {
-            // here we would sort cache entries by amount of usage 
-            // if usage count is the same the LRU policy would be applied
-            // instead of the LRU type implementation we can just store the oldest entry with the least 
-            // usage count and evict it
+            let prevUseCount = entry.useCount ?? 0;
+            entry.useCount = prevUseCount + 1;
+            if (cache.smallestUseCount === undefined) cache.smallestUseCount = entry.useCount;
 
-            // fuck maps, was right from the start
+            // add to new bucket
+            if (!cache.frequencyBin.has(entry.useCount)) {
+                cache.frequencyBin.set(entry.useCount, new Map<string, EntryInfo<R>>());
+            }
+            cache.frequencyBin.get(entry.useCount)?.set(key, entry); 
 
-            // let secondLeastUsedEntry;
-            entries.delete(key);
-            entries.set(key, entry);
-            entry.useCount += 1;
-            if (!cache.leastUsedEntry || entry.useCount < cache.leastUsedEntry.useCount)
-            {
-                // secondLeastUsedEntry = leastUsedEntry;
-                cache.leastUsageCount = entry.useCount;
-                cache.leastUsedEntry = entry;
+            // remove from old bucket
+            cache.frequencyBin.get(prevUseCount)?.delete(key); 
+
+            // delete empty buckets... 
+            if (cache.frequencyBin.get(prevUseCount)?.size <= 0) {
+                cache.frequencyBin.delete(prevUseCount);
+
+                // store smallest bucket key...
+                if (cache.smallestUseCount === prevUseCount) {
+                    cache.smallestUseCount = entry.useCount;
+                }
             }
-            else
-            {
-                cache.leastUsedEntry = entries.keys().next().value; 
-            }
-            if (entries.size > options?.maxCache!)
-            {
-                entries.delete(cache.leastUsedEntry.key);
-                // leastUsedEntry = secondLeastUsedEntry;
-                // secondLeastUsedEntry = undefined;
+
+            if (entries.size > options?.maxCache!) {
+                const firstBin = cache.frequencyBin.keys().next().value;
+                const firstBinKey = cache.frequencyBin.get(firstBin).keys().next().value;
+                
+                cache.entries.delete(firstBinKey);
+                cache.frequencyBin.get(firstBin).delete(firstBinKey);
             }
             break;
         }
