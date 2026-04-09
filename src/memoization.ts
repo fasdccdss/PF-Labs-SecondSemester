@@ -81,6 +81,7 @@ function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options?: MemoizeOp
             }
             break;
         }
+        // track smallest bucket key, than evict from it using LRU
         case EvictionPolicy.LFU: {
             let prevUseCount = entry.useCount ?? 0;
             entry.useCount = prevUseCount + 1;
@@ -100,16 +101,22 @@ function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options?: MemoizeOp
                 cache.frequencyBin.delete(prevUseCount);
 
                 // store smallest bucket key...
-                if (cache.smallestUseCount === prevUseCount) {
-                    cache.smallestUseCount = entry.useCount;
+                if (cache.smallestUseCount == prevUseCount) {
+                    cache.smallestUseCount++;
                 }
             }
 
             if (entries.size > options?.maxCache!) {
-                const firstBin = cache.frequencyBin.keys().next().value;
+                const firstBin = cache.smallestUseCount!;
                 const firstBinKey = cache.frequencyBin.get(firstBin).keys().next().value;
                 
                 cache.entries.delete(firstBinKey);
+                // delete empty buckets... 
+                if (cache.frequencyBin.get(firstBin).size <= 0) {
+                    cache.frequencyBin.delete(firstBin);
+                    // update smallest bucket key...
+                    cache.smallestUseCount++;
+                }
                 cache.frequencyBin.get(firstBin).delete(firstBinKey);
             }
             break;
