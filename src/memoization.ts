@@ -1,6 +1,6 @@
-export function memoize<T extends (...args: any[]) => any>(fn: T, options?: MemoizeOptions): T
+export function memoize<T extends (...args: any[]) => any>(fn: T, options: MemoizeOptions): T
 {
-    const maxCache = options?.maxCache ?? Infinity;
+    const maxCache = options.maxCache ?? Infinity;
     const cache: Cache<ReturnType<T>> = {
         frequencyBin: new Map<number, Map<string, EntryInfo<ReturnType<T>>>>(),
         entries: new Map<string, EntryInfo<ReturnType<T>>>()
@@ -46,8 +46,8 @@ type Cache<T> = {
 type EntryInfo<T> = {
     value: T;
     key: string;
-    useCount?: number;
-    lifetime?: number;
+    useCount?: number; // for LFU eviction case
+    lifetime?: number; // for TimeBased eviction case
 }
 enum EvictionPolicy 
 {
@@ -57,7 +57,7 @@ enum EvictionPolicy
     TimeBased,
     Custom
 }
-function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options?: MemoizeOptions)
+function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions)
 {
     const policy = options?.evictionPolicy ?? EvictionPolicy.LRU;
     const entries = cache.entries;
@@ -66,67 +66,85 @@ function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options?: MemoizeOp
     switch (policy)
     {
         case EvictionPolicy.FIFO: {
-            const firstKey = entries.keys().next().value;
-            entries.delete(firstKey);
-            break;
+            return EvictFIFO(cache, entry, options);
         }
         case EvictionPolicy.LRU: {
-            // const entry = entries.get(key)!;
-            entries.delete(key);
-            entries.set(key, entry);
-            if (entries.size > options?.maxCache!)
-            {
-                const firstKey = entries.keys().next().value;
-                entries.delete(firstKey);
-            }
-            break;
+            return EvictLRU(cache, entry, options);
         }
-        // track smallest bucket key, than evict from it using LRU
+        // track smallest bucket key, than evict from it(bucket) using LRU
         case EvictionPolicy.LFU: {
-            let prevUseCount = entry.useCount ?? 0;
-            entry.useCount = prevUseCount + 1;
-            if (cache.smallestUseCount === undefined) cache.smallestUseCount = entry.useCount;
-
-            // add to new bucket
-            if (!cache.frequencyBin.has(entry.useCount)) {
-                cache.frequencyBin.set(entry.useCount, new Map<string, EntryInfo<R>>());
-            }
-            cache.frequencyBin.get(entry.useCount)?.set(key, entry); 
-
-            // remove from old bucket
-            cache.frequencyBin.get(prevUseCount)?.delete(key); 
-
-            // delete empty buckets... 
-            if (cache.frequencyBin.get(prevUseCount)?.size <= 0) {
-                cache.frequencyBin.delete(prevUseCount);
-
-                // store smallest bucket key...
-                if (cache.smallestUseCount == prevUseCount) {
-                    cache.smallestUseCount++;
-                }
-            }
-
-            if (entries.size > options?.maxCache!) {
-                const firstBin = cache.smallestUseCount!;
-                const firstBinKey = cache.frequencyBin.get(firstBin).keys().next().value;
-                
-                cache.entries.delete(firstBinKey);
-                // delete empty buckets... 
-                if (cache.frequencyBin.get(firstBin).size <= 0) {
-                    cache.frequencyBin.delete(firstBin);
-                    // update smallest bucket key...
-                    cache.smallestUseCount++;
-                }
-                cache.frequencyBin.get(firstBin).delete(firstBinKey);
-            }
-            break;
+            return EvictLFU(cache, entry, options);
         }
         case EvictionPolicy.TimeBased: {
+            EvictLRU(cache, entry, options); // time based eviction still has to respect the cache size
+            
+        }
+        case EvictionPolicy.Custom: {
 
-            if (options?.maxCache && entries.size > options.maxCache) {
-                const firstKey = entries.keys().next().value;
-                entries.delete(firstKey);
-            }
         }
     }
+}
+//////////////////////////
+/// Eviction functions ///
+//////////////////////////
+function EvictFIFO<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions) 
+{
+    const firstKey = cache.entries.keys().next().value;
+    cache.entries.delete(firstKey);
+}
+function EvictLRU<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions)
+{
+    cache.entries.delete(entry.key);
+    cache.entries.set(entry.key, entry);
+    if (cache.entries.size > options?.maxCache!)
+    {
+        const firstKey = cache.entries.keys().next().value;
+        cache.entries.delete(firstKey);
+    }
+}
+function EvictLFU<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions)
+{
+    const entries = cache.entries;
+    const key = entry.key!;
+
+    let prevUseCount = entry.useCount ?? 0;
+    entry.useCount = prevUseCount + 1;
+    if (cache.smallestUseCount === undefined) cache.smallestUseCount = entry.useCount;
+
+    // add to new bucket
+    if (!cache.frequencyBin.has(entry.useCount)) {
+        cache.frequencyBin.set(entry.useCount, new Map<string, EntryInfo<R>>());
+    }
+    cache.frequencyBin.get(entry.useCount)?.set(key, entry);
+
+    // remove from old bucket
+    cache.frequencyBin.get(prevUseCount)?.delete(key);
+
+    // delete empty buckets... 
+    if (cache.frequencyBin.get(prevUseCount)?.size <= 0) {
+        cache.frequencyBin.delete(prevUseCount);
+
+        // store smallest bucket key...
+        if (cache.smallestUseCount == prevUseCount) {
+            cache.smallestUseCount++;
+        }
+    }
+
+    if (entries.size > options?.maxCache!) {
+        const firstBin = cache.smallestUseCount!;
+        const firstBinKey = cache.frequencyBin.get(firstBin).keys().next().value;
+
+        cache.entries.delete(firstBinKey);
+        // delete empty buckets... 
+        if (cache.frequencyBin.get(firstBin).size <= 0) {
+            cache.frequencyBin.delete(firstBin);
+            // update smallest bucket key...
+            cache.smallestUseCount++;
+        }
+        cache.frequencyBin.get(firstBin).delete(firstBinKey);
+    }
+}
+function EvictTimeBased<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions)
+{
+    
 }
