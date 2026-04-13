@@ -1,6 +1,5 @@
 export function memoize<T extends (...args: any[]) => any>(fn: T, options: MemoizeOptions): T
 {
-    const maxCache = options.maxCache ?? Infinity;
     const cache: Cache<ReturnType<T>> = {
         frequencyBin: new Map<number, Map<string, EntryInfo<ReturnType<T>>>>(),
         entries: new Map<string, EntryInfo<ReturnType<T>>>()
@@ -8,27 +7,20 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, options: Memoi
     const entries = cache.entries;
     // const cache = new Map<string, ReturnType<T>>();
 
-    return function(...args: Parameters<T>): ReturnType<T> 
-    {
+    return function (...args: Parameters<T>): ReturnType<T> {
         const key = JSON.stringify(args);
         let entry;
 
-        if (entry = entries.get(key)) 
-        {
-            // todo: need to check if an eviction policy is size based
-            // options?.maxCache && options.evictionPolicy != EvictionPolicy.TimeBased; 
-            // entry.key = key;
-            // EvictCache(cache, options?.evictionPolicy ?? EvictionPolicy.LRU, options, { key, accessCount: 0 });
+        if (entry = entries.get(key)) {
+            EvictCache(cache, entry, options); // update access
             return entry;
         }
-        if (entries.size >= maxCache) 
-        {
-            const firstKey = entries.keys().next().value;
-            entries.delete(firstKey);
-        }
-        
+
         const result = fn(...args);
-        entries.set(key, { value: result, key });
+        const newEntry: EntryInfo<ReturnType<T>> = { value: result, key };
+
+        entries.set(key, newEntry);
+        EvictCache(cache, newEntry, options); // handle eviction after adding
         return result;
     } as T;
 }
@@ -76,8 +68,7 @@ function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOpt
             return EvictLFU(cache, entry, options);
         }
         case EvictionPolicy.TimeBased: {
-            EvictFIFO(cache, entry, options); // time based eviction still has to respect the cache size
-            
+            return EvictTimeBased(cache, entry, options);
         }
         case EvictionPolicy.Custom: {
 
@@ -149,14 +140,21 @@ function EvictLFU<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptio
 }
 function EvictTimeBased<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions)
 {
-    // nevermind...
     const currentTime = Date.now();
-    entry.endtime = currentTime + options?.lifetimeLimit!; // :::::::::
 
-    const firstKey = cache.entries.keys().next().value;
-    const firstEntry = cache.entries.get(firstKey);
+    if (!entry.endtime) {
+        entry.endtime = currentTime + (options?.lifetimeLimit ?? 0);
+    }
 
-    if (firstEntry.endtime <= currentTime) {
-        cache.entries.delete(firstEntry.key);
+    // Remove all expired front entries (FIFO order)
+    let iterator = cache.entries.entries();
+    let next = iterator.next();
+    while (!next.done) {
+        const [key, ent] = next.value;
+        if (ent.endtime && ent.endtime <= currentTime) {
+            cache.entries.delete(key);
+            next = iterator.next();
+        } 
+        else break;
     }
 }
