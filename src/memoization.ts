@@ -47,7 +47,8 @@ type EntryInfo<T> = {
     value: T;
     key: string;
     useCount?: number; // for LFU eviction case
-    lifetime?: number; // for TimeBased eviction case
+    birthtime?: number; // for TimeBased eviction case
+    endtime?: number; // for TimeBased eviction case
 }
 enum EvictionPolicy 
 {
@@ -89,8 +90,11 @@ function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOpt
 //////////////////////////
 function EvictFIFO<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions) 
 {
-    const firstKey = cache.entries.keys().next().value;
-    cache.entries.delete(firstKey);
+    if (cache.entries.size > options?.maxCache!)
+    {
+        const firstKey = cache.entries.keys().next().value;
+        cache.entries.delete(firstKey);
+    }
 }
 function EvictLRU<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions)
 {
@@ -146,5 +150,22 @@ function EvictLFU<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptio
 }
 function EvictTimeBased<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions)
 {
-    
+    // for best optimization, 
+    // we can just log the deletion time for each entry, caching only one value per entry and avoiding constant 
+    // calculations of the entries "lifetime" running per each entry
+    // and instead having a single timer that would delete all expired entries
+
+
+
+    const currentTime = Date.now();
+    entry.birthtime = currentTime;
+    entry.endtime = entry.birthtime + options?.lifetimeLimit!; // :::::::::
+    if (currentTime >= entry.endtime!) {
+        for (const [key, entry] of cache.entries) 
+        {
+            if (Date.now() >= entry.endtime!) {
+                cache.entries.delete(key);
+            }
+        }
+    }
 }
