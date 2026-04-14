@@ -1,4 +1,4 @@
-export function memoize<T extends (...args: any[]) => any>(fn: T, options: MemoizeOptions): T
+export function memoize<T extends (...args: any[]) => any>(fn: T, options: MemoizeOptions<ReturnType<T>> = {}): T
 {
     const cache: Cache<ReturnType<T>> = {
         frequencyBin: new Map<number, Map<string, EntryInfo<ReturnType<T>>>>(),
@@ -13,7 +13,7 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, options: Memoi
 
         if (entry = entries.get(key)) {
             EvictCache(cache, entry, options); // update access
-            return entry;
+            return entry.value;
         }
 
         const result = fn(...args);
@@ -24,11 +24,12 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, options: Memoi
         return result;
     } as T;
 }
-type MemoizeOptions = {
+type MemoizeOptions<T = any> = {
     maxCache?: number;
 
     evictionPolicy?: EvictionPolicy;
     lifetimeLimit?: number; // for TimeBased eviction case
+    customEviction?: CustomEviction<T>;
 };
 type Cache<T> = {
     smallestUseCount?: number; // for LFU eviction case
@@ -52,9 +53,10 @@ enum EvictionPolicy
 function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions)
 {
     const policy = options?.evictionPolicy ?? EvictionPolicy.LRU;
-    const entries = cache.entries;
-    const key = entry.key!;
-    // const entry = entries.get(key)!;
+
+    if (options.customEviction) {
+        return options.customEviction(cache, entry, options);
+    }
     switch (policy)
     {
         case EvictionPolicy.FIFO: {
@@ -70,14 +72,14 @@ function EvictCache<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOpt
         case EvictionPolicy.TimeBased: {
             return EvictTimeBased(cache, entry, options);
         }
-        case EvictionPolicy.Custom: {
-
-        }
     }
 }
 //////////////////////////
 /// Eviction functions ///
 //////////////////////////
+
+type CustomEviction<R> = (cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions) => void
+
 function EvictFIFO<R>(cache: Cache<R>, entry: EntryInfo<R>, options: MemoizeOptions) 
 {
     if (cache.entries.size > options?.maxCache!)
