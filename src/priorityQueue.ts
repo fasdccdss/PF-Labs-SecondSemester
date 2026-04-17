@@ -1,6 +1,6 @@
 let keyCounter = 0;
 
-const priorityBins = new Map<Priority, Map<number, Entry<any>>>();
+const priorityBins = new Map<Priority, PriorityMap>();
 const allEntries = new Map<number, Entry<any>>();
 
 /* FUNCTIONS */
@@ -12,10 +12,11 @@ function Enqueue<T>(value: T, priority: Priority)
     const key = generateKey();
     const entry = { key, value, priority };
 
-    if (!priorityBins.has(priority)) priorityBins.set(priority, new Map());
+    if (!priorityBins.has(priority)) priorityBins.set(priority, {newestKey: key, map: new Map() });
     
-    priorityBins.get(priority)!.set(key, entry);
-    allEntries.set(key, entry);
+    const bin = priorityBins.get(priority)!;
+    bin.newestKey = key;
+    bin.map.set(key, entry);
 }
 function Dequeue(retrieveHighestPriority: boolean, retrieveOldestEntry: boolean) 
 {
@@ -46,17 +47,20 @@ function RetrieveMapEntry(priorityKey: number, retrieveOldest: boolean): number
 
     if (retrieveOldest)
     {
-        return bin.keys().next().value;
+        return bin.map.keys().next().value;
     }
     else 
     {
-        let lastKey!: number;
-        for (const key of bin.keys()) lastKey = key;
-        return lastKey;
+        return bin.newestKey;
     }
 }
 
 /* TYPES */
+type PriorityMap =
+{
+    newestKey: number;
+    map: Map<number, Entry<any>>;
+}
 type Entry<T = any> = {
     key: number;
     value: T;
