@@ -83,14 +83,3 @@ enum Priority
 {
     S, A, B, C, D, E, F
 }
-/*
-enum RetrievePriority
-{
-    highest,
-    lowest
-}
-enum RetrieveMode {
-    oldest,
-    newest
-}
-*/
