@@ -22,6 +22,8 @@ function Enqueue<T>(value: T, priority: Priority)
 }
 function Peek(retrieveHighestPriority: boolean, retrieveOldestEntry: boolean): Entry<any>
 {
+    if (allEntries.size == 0) return null;
+
     const priorityKey = RetrievePriorityMap(retrieveHighestPriority);
     const entryKey = RetrieveMapEntry(priorityKey, retrieveOldestEntry);
     return allEntries.get(entryKey)!;
@@ -29,6 +31,7 @@ function Peek(retrieveHighestPriority: boolean, retrieveOldestEntry: boolean): E
 function Dequeue(retrieveHighestPriority: boolean, retrieveOldestEntry: boolean): Entry<any>
 {
     const entry = Peek(retrieveHighestPriority, retrieveOldestEntry);
+    if (entry == null) return null;
 
     // remove from priority bin
     const bin = priorityBins.get(entry.priority)!;
