@@ -4,9 +4,11 @@ const priorityBins = new Map<Priority, PriorityMap>();
 const allEntries = new Map<number, Entry<any>>();
 
 /* FUNCTIONS */
-function generateKey(): number {
+function generateKey(): number 
+{
     return ++keyCounter;
 }
+
 function Enqueue<T>(value: T, priority: Priority) 
 {
     const key = generateKey();
@@ -18,15 +20,24 @@ function Enqueue<T>(value: T, priority: Priority)
     bin.newestKey = key;
     bin.map.set(key, entry);
 }
-function Dequeue(retrieveHighestPriority: boolean, retrieveOldestEntry: boolean) 
+function Peek(retrieveHighestPriority: boolean, retrieveOldestEntry: boolean): Entry<any>
 {
-
+    const priorityKey = RetrievePriorityMap(retrieveHighestPriority);
+    const entryKey = RetrieveMapEntry(priorityKey, retrieveOldestEntry);
+    return allEntries.get(entryKey)!;
 }
-function Peek(retrieveHighestPriority: boolean, retrieveOldestEntry: boolean)
+function Dequeue(retrieveHighestPriority: boolean, retrieveOldestEntry: boolean): Entry<any>
 {
-    // retrieveHighestPriority?
-    // retrieveOldest?
+    const entry = Peek(retrieveHighestPriority, retrieveOldestEntry);
 
+    // remove from priority bin
+    const bin = priorityBins.get(entry.priority)!;
+    bin.map.delete(entry.key);
+    if (bin.map.size == 0) priorityBins.delete(entry.priority);
+    // AND from all entries map
+    allEntries.delete(entry.key);
+
+    return entry;
 }
 
 function RetrievePriorityMap(retrieveHighest: boolean): number 
