@@ -13,7 +13,7 @@ const seedsTwo: number[] = [];
 for (let x = 0; x <= maxOrder; x++) {
     seedsTwo.push(baseSeed + x * 4); // 4 for different values
 }
-export function* GenerateRandNum()
+export function GenerateRandNum(): number
 {
     for (let x = 1; x <= maxOrder; x++) 
     {
@@ -31,11 +31,16 @@ export function* GenerateRandNum()
     }
 
     let randomNumber = (seedsOne[maxOrder] + seedsTwo[maxOrder] / M) / M;
-    yield randomNumber;
+    return randomNumber;
 }
 export function* GenerateRandNumInf()
 {
     while (true) {
-        yield* GenerateRandNum();
+        yield GenerateRandNum();
     } 
+}
+export function RandIntInRange(min: number, max: number): number
+{
+    const rand = GenerateRandNum();
+    return Math.floor(min + rand * (max - min + 1));
 }
