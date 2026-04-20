@@ -41,8 +41,6 @@ function asyncFilterCallback<T> (
     abortSignal?: AbortSignal
 ) 
 {
-    if (abortSignal?.aborted) throw new Error("Filter operation aborted");
-
     Promise.all(array.map((item, index) => 
     {
         if (abortSignal?.aborted) throw new Error("Filter operation aborted");
