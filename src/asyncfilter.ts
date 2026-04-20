@@ -17,9 +17,18 @@ const randomElement: AsyncPredicate<number> = async (item) => {
 }
 
 /* PROMISE */
-async function asyncFilterPromise<T>(array: Array<T>, asyncPredicate: AsyncPredicate<T>)
+async function asyncFilterPromise<T>(
+    array: Array<T>, 
+    asyncPredicate: AsyncPredicate<T>,
+    abortSignal?: AbortSignal
+)
 {
-    const results = await Promise.all(array.map((item, index) => asyncPredicate(item, index, array)));
+
+    const results = await Promise.all(array.map((item, index) => 
+    { 
+        if (abortSignal?.aborted) throw new Error("Filter operation aborted");
+        return asyncPredicate(item, index, array);
+    }));
 
     return array.filter((_blank, index) => results[index]);
 }
@@ -28,17 +37,22 @@ async function asyncFilterPromise<T>(array: Array<T>, asyncPredicate: AsyncPredi
 function asyncFilterCallback<T> ( 
     array: Array<T>,
     asyncPredicate: AsyncPredicate<T>,
-    callback: Callback<T> 
+    callback: Callback<T>,
+    abortSignal?: AbortSignal
 ) 
 {
-    Promise.all(array.map((item, index) => asyncPredicate(item, index, array)))
+    if (abortSignal?.aborted) throw new Error("Filter operation aborted");
+
+    Promise.all(array.map((item, index) => 
+    {
+        if (abortSignal?.aborted) throw new Error("Filter operation aborted");
+        return asyncPredicate(item, index, array)
+    }))
     .then(results => {
         const filtered = array.filter((_blank, index) => results[index]);
         callback(null, filtered);
     }).catch(err => callback(err, null))
 }
-
-/* ABORT */
 
 // Usage examples:
 const nums = [1, 2, 3, 4, 5];
