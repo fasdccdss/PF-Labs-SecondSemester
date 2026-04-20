@@ -1,22 +1,28 @@
 /////////////
 // Summary:
-// checkMethod HAS to return a Promise;
-// We write our own array.filter function that works in async 
+// asyncPredicate HAS to return a Promise;
+// We write our own array.filter function that works in async
 // instead of trying to convert the original array.fiter function
 /////////////
 
-type AsyncPredicate<T> = (item: T) => Promise<boolean>;
+import { RandIntInRange } from "./generator";
+
+type AsyncPredicate<T> = (item: T, index: number, array: Array<T>) => Promise<boolean>;
 type Callback<T> = (error: Error | null, result: Array<T> | null) => void
+
+/* PREDICATE*/
+const randomElement: AsyncPredicate<number> = async (item) => {
+    await new Promise(resolve => setTimeout(resolve, 100)); // wait time, useless, here only for example
+    return RandIntInRange(0, 1) == 1;
+}
 
 /* PROMISE */
 async function asyncFilterPromise<T>(array: Array<T>, asyncPredicate: AsyncPredicate<T>)
 {
-    const results = await Promise.all(array.map((item) => asyncPredicate(item)));
+    const results = await Promise.all(array.map((item, index) => asyncPredicate(item, index, array)));
 
     return array.filter((_blank, index) => results[index]);
 }
-
-// Usage example:
 
 /* CALLBACK */
 function asyncFilterCallback<T> ( 
@@ -25,11 +31,27 @@ function asyncFilterCallback<T> (
     callback: Callback<T> 
 ) 
 {
-    Promise.all(array.map((item) => asyncPredicate(item)))
+    Promise.all(array.map((item, index) => asyncPredicate(item, index, array)))
     .then(results => {
         const filtered = array.filter((_blank, index) => results[index]);
         callback(null, filtered);
     }).catch(err => callback(err, null))
 }
 
-// Usage example:
+/* ABORT */
+
+// Usage examples:
+const nums = [1, 2, 3, 4, 5];
+
+// Promise
+asyncFilterPromise(nums, randomElement).then(result => console.log(result));
+
+// Callback
+function onFilterDone(error: Error | null, result: Array<number> | null) {
+    if (error) {
+        console.error("Error:", error);
+        return;
+    }
+    console.log(result);
+}
+asyncFilterCallback(nums, randomElement, onFilterDone);
