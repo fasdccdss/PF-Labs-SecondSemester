@@ -1,16 +1,38 @@
 import { EventEmitter } from 'node:events';
+import * as readline from 'node:readline';
 
-const emitter = new EventEmitter();
+export namespace EventBus 
+{
+    const emitter = new EventEmitter();
 
-export function Subscribe(command: string, handler: (args: string[]) => Promise<void>) {
-    emitter.on(command, handler);
-}
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
 
-export function Unsubscribe(command: string, handler: (args: string[]) => Promise<void>) {
-    emitter.off(command, handler);
-}
+    export function Subscribe(command: string, event: (...args: any[]) => void) {
+        emitter.on(command, event);
+    }
 
-export function Dispatch(command: string, args: string[]) {
-    emitter.emit(command, args);
-}
+    export function Unsubscribe(command: string, event: (...args: any[]) => void) {
+        emitter.off(command, event);
+    }
+
+    export function Dispatch(command: string) {
+        emitter.emit(command);
+    }
+
+    export function PromptCommand() {
+        rl.question('Enter command: ', (command) => {
+            command = command.trim();
+
+            if (!command) return PromptCommand();
+            if (command == 'exit') { rl.close(); return; }
+
+            Dispatch(command);
+            PromptCommand();
+        });
+    }
+} 
+
 // usage examples are at main.ts
