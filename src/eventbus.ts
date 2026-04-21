@@ -13,3 +13,4 @@ export function Unsubscribe(command: string, handler: (args: string[]) => Promis
 export function Dispatch(command: string, args: string[]) {
     emitter.emit(command, args);
 }
+// usage examples are at main.ts
