@@ -18,8 +18,9 @@ export namespace EventBus
         emitter.off(command, event);
     }
 
-    export function Dispatch(command: string) {
-        emitter.emit(command);
+    export async function Dispatch(command: string) {
+        const listeners = emitter.listeners(command);
+        await Promise.all(listeners.map(fn => fn()));
     }
 
     export function PromptCommand() {
