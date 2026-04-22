@@ -17,3 +17,16 @@ export namespace AsyncIterator
         }
     }
 }
+
+async function UsageExample() 
+{
+    const dataset = Array.from({ length: 1_000_000 }, (_, i) => i + 1);
+    let total = 0;
+
+    for await (const chunk of AsyncIterator.Iterate(dataset, 1000))
+    {
+        const sum = chunk.reduce((acc, val) => acc + val, 0);
+        total += chunk.length;
+        console.log(`Processed ${total} items, chunk sum: ${sum}`);
+    }
+}
