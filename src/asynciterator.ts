@@ -2,25 +2,17 @@
 
 export namespace AsyncIterator
 {
-
-    // we will split the data into chunks of the N value, than
-    // we would process each chunk consecutively
-    export async function* Iterate(data: any[], chunkSize: number)
+    export async function* Iterate(dataArray: any[], chunkSize: number)
     {
-        let currentChunk: number;
-        currentChunk = 0;
-        let chunk: any[];
-
-        for await (chunk of data)
+        for (let x = 0; x < dataArray.length; x += chunkSize)
         {
-            let x = currentChunk * chunkSize + 1;
-            let y = currentChunk * chunkSize + 1 + chunkSize;
-            for (x; x < y; x++)
+            const chunk = [];
+            // prevent going over data length on the last chunk by using Math.min
+            for (let y = x; y < Math.min(x + chunkSize, dataArray.length); y++)
             {
-                chunk[x - 1] = data[x - 1];
+                chunk.push(dataArray[y]);
             }
-            
-            currentChunk += 1;
+
             yield chunk;
         }
     }
