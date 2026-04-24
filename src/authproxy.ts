@@ -5,6 +5,22 @@ export class AuthProxy {
         this.authMethod = authMethod;
     }
 
+    AuthSwitch(authMethod: AuthMethod) {
+        this.authMethod = authMethod;
+    }
+
+    Get(url: string) {
+        return fetch(url, { headers: this.authMethod.GetHeaders() });
+    }
+
+    Post(url: string, body: any)
+    {
+        return fetch(url, {
+            method: "POST",
+            headers: {...this.authMethod.GetHeaders(), "Content-Type": "application/json"},
+            body: JSON.stringify(body)
+        });
+    }
 }
 
 export interface AuthMethod {
@@ -13,7 +29,7 @@ export interface AuthMethod {
 
 export class ApiKey implements AuthMethod {
     key: string;
-    headerName: string = "X-API-Key"
+    headerName: string = "X-API-Key";
     // headerName is configurable because different APIs use different key header names (e.g. "X-Auth-Token")
     constructor(userKey: string, headerName: string) {
         this.key = userKey;
