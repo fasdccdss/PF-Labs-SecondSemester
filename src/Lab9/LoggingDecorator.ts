@@ -1,6 +1,6 @@
 export class Decorator
 {
-    Log(logLevel: LogLevel, event: (...args: any[]) => any[], formatter)
+    Log(logLevel: LogLevel, event: (...args: any[]) => any[], formatter?: (info: LogInfo) => LogMessage)
     {
         return async (...args: any[]) =>
         {
@@ -15,6 +15,7 @@ export class Decorator
                 case LogLevel.INFO:
                 {
                     let logInfo: LogInfo;
+                    let logMessage: LogMessage;
                     
                     let caughtError: any = undefined;
 
@@ -39,46 +40,81 @@ export class Decorator
                         error: caughtError
                     }
 
+                    logMessage = this.ConstructLogMessage(logInfo, formatter)
+                    /*
                     if (!formatter)
                     {
-                        console.info(`Logging function`, logInfo.functionName);
-                        console.info(`Entry date:`, logInfo.entryTime);
-                        console.info(`Log level:`, logInfo.logLevel);
-                        console.info(`Called with:`, logInfo.arguments);
-
-                        if (logInfo.error)
-                            console.info(`Error caught: ${logInfo.error}`);
-
-                        console.info(`Execution time: ${logInfo.executionTime}ms`);
-                        console.info(`output:`, logInfo.output);
+                        logMessage = 
+                        {
+                            functionNameMsg: (`Logging function: ${logInfo.functionName}`),
+                            entryTimeMsg: (`Entry date: ${logInfo.entryTime}`),
+                            logLevelMsg: (`Log level: ${logInfo.logLevel}`),
+                            argumentsMsg: (`Called with: ${logInfo.arguments}`),
+                            outputMsg: (`output: ${logInfo.output}`),
+                            executionTimeMsg: (`Execution time: ${logInfo.executionTime}ms`),
+                            errorMsg: logInfo.error ? (`Error caught: ${logInfo.error}`) : undefined
+                        }
                     }
                     else 
                     {
-                        formatter(logInfo);
+                        logMessage = formatter(logInfo);
                     }
+                    */
+
+                    console.info(logMessage.functionNameMsg);
+                    console.info(logMessage.entryTimeMsg);
+                    console.info(logMessage.logLevelMsg);
+                    console.info(logMessage.argumentsMsg);
+
+                    console.info(logMessage.executionTimeMsg);
+                    console.info(logMessage.outputMsg);
+
+                    if (logMessage.errorMsg)
+                        console.info(logMessage.errorMsg);
 
                     return output;
                 }
 
                 case LogLevel.DEBUG:
                 {
-                    console.debug(`Logging function ${event.name}`);
-                    console.debug(`Entry date: ${new Date().toISOString()}`);
-                    console.debug(`Log level: [DEBUG]`);
-                    console.debug(`Called with:`, args);
+                    let logInfo: LogInfo;
+                    let logMessage: LogMessage;
+                    
+                    let caughtError: any = undefined;
 
                     try {
                         output = await event(...args);
                     } catch (error) {
-                        console.debug(`Error caught: ${error}`);
+                        caughtError = error;
                     }
 
                     // execution time profiling
                     endDate = Date.now();
                     executionTime = endDate - startDate;
-                    console.debug(`Execution time: ${executionTime}ms`);
 
-                    console.debug(`returned:`, output);
+                    logInfo = 
+                    {
+                        functionName: event.name,
+                        entryTime: new Date().toISOString(),
+                        logLevel: logLevel,
+                        arguments: args,
+                        output: output,
+                        executionTime: executionTime,
+                        error: caughtError
+                    }
+
+                    logMessage = this.ConstructLogMessage(logInfo, formatter)
+
+                    console.debug(logMessage.functionNameMsg);
+                    console.debug(logMessage.entryTimeMsg);
+                    console.debug(logMessage.logLevelMsg);
+                    console.debug(logMessage.argumentsMsg);
+
+                    console.debug(logMessage.executionTimeMsg);
+                    console.debug(logMessage.outputMsg);
+
+                    if (logMessage.errorMsg)
+                        console.debug(logMessage.errorMsg);
 
                     return output;
                 }
@@ -111,6 +147,27 @@ export class Decorator
             }
         }
     }
+
+    ConstructLogMessage(logInfo: LogInfo, formatter?: (info: LogInfo) => LogMessage): LogMessage
+    {
+        let logMessage: LogMessage;
+
+        if (!formatter)
+            logMessage =
+            {
+                functionNameMsg: (`Logging function: ${logInfo.functionName}`),
+                entryTimeMsg: (`Entry date: ${logInfo.entryTime}`),
+                logLevelMsg: (`Log level: ${logInfo.logLevel}`),
+                argumentsMsg: (`Called with: ${logInfo.arguments}`),
+                outputMsg: (`Output: ${logInfo.output}`),
+                executionTimeMsg: (`Execution time: ${logInfo.executionTime}ms`),
+                errorMsg: logInfo.error ? (`Error caught: ${logInfo.error}`) : undefined
+            }
+        else
+            logMessage = formatter(logInfo);
+
+        return logMessage;
+    }
 }
 
 enum LogLevel
@@ -127,6 +184,17 @@ type LogInfo =
     functionName: string,
     arguments: any[],
     output: any,
-    executionTime:any,
+    executionTime: any,
     error?: any;
+}
+
+type LogMessage = 
+{
+    entryTimeMsg: string,
+    logLevelMsg: string,
+    functionNameMsg: string,
+    argumentsMsg: string,
+    outputMsg: string,
+    executionTimeMsg: string,
+    errorMsg?: string
 }
