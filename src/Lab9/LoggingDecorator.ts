@@ -4,9 +4,6 @@ export class Decorator
     {
         return(...args: any[]) =>
         {
-            console.log(`Logging function ${event.name}`);
-            console.log(`Entry date: ${new Date().toISOString()}`);
-
             let startDate = Date.now();
             let endDate;
             let executionTime;
@@ -17,45 +14,66 @@ export class Decorator
             {
                 case LogLevel.INFO:
                 {
+                    console.info(`Logging function ${event.name}`);
+                    console.info(`Entry date: ${new Date().toISOString()}`);
+                    console.info(`Log level: [INFO]`);
+                    console.info(`Called with:`, args);
+                    
                     result = event(...args);
 
-                    for (let x = 0; x < args.length; x++)
-                    {
-                        console.info(`[INFO] arg[${x}]:`, args[x]);
-                    }
-                    
-                    break;
+                    endDate = Date.now();
+                    executionTime = endDate - startDate;
+                    console.info(`Execution time: ${executionTime}ms`);
+
+                    console.info(`returned:`, result);
+                    return result;
                 }
 
                 case LogLevel.DEBUG:
                 {
+                    console.debug(`Logging function ${event.name}`);
+                    console.debug(`Entry date: ${new Date().toISOString()}`);
+                    console.debug(`Log level: [DEBUG]`);
+                    console.debug(`Called with:`, args);
+
                     result = event(...args);
 
-                    console.debug(`[DEBUG] ${event.name} called with`, args);
+                    // execution time profiling
+                    endDate = Date.now();
+                    executionTime = endDate - startDate;
+                    console.debug(`Execution time: ${executionTime}ms`);
 
-                    break;
+                    console.debug(`returned:`, result);
+
+                    return result;
                 }
 
                 case LogLevel.ERROR:
                 {
-                    try {
+                    try 
+                    {
                         result = event(...args);
                     } 
-                    catch (error) {
-                        console.error(`[ERROR] cought with ${args.length} args`, error);
+                    catch (error) 
+                    {
+                        console.error(`Logging function ${event.name}`);
+                        console.error(`Entry date: ${new Date().toISOString()}`);
+                        console.error(`Log level: [ERROR]`);
+
+                        console.error(`[ERROR] cought with ${args.length} args`, error); // the only useful thing we log basically
+
+                        // execution time profiling
+                        endDate = Date.now();
+                        executionTime = endDate - startDate;
+                        console.error(`Execution time: ${executionTime}ms`);
+
+                        return;
                     }
 
-                    break;
+                    console.log(`returned:`, result);
+                    return result;
                 }
             }
-
-            // execution time profiling
-            endDate = Date.now();
-            executionTime = endDate - startDate;
-            console.log(`Execution time: ${executionTime}`);
-
-            console.log(`returned:`, result);
-            return result;
         }
     }
 }
