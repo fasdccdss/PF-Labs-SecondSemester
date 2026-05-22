@@ -2,7 +2,7 @@ export class Decorator
 {
     Log(logLevel: LogLevel, event: (...args: any[]) => any[])
     {
-        return(...args: any[]) =>
+        return async (...args: any[]) =>
         {
             let startDate = Date.now();
             let endDate;
@@ -19,7 +19,7 @@ export class Decorator
                     console.info(`Log level: [INFO]`);
                     console.info(`Called with:`, args);
                     
-                    result = event(...args);
+                    result = await event(...args);
 
                     endDate = Date.now();
                     executionTime = endDate - startDate;
@@ -36,7 +36,7 @@ export class Decorator
                     console.debug(`Log level: [DEBUG]`);
                     console.debug(`Called with:`, args);
 
-                    result = event(...args);
+                    result = await event(...args);
 
                     // execution time profiling
                     endDate = Date.now();
@@ -52,7 +52,7 @@ export class Decorator
                 {
                     try 
                     {
-                        result = event(...args);
+                        result = await event(...args);
                     } 
                     catch (error) 
                     {
@@ -83,4 +83,10 @@ enum LogLevel
     INFO,
     DEBUG,
     ERROR
+}
+
+type LogInfo = 
+{
+    level: LogLevel;
+
 }
