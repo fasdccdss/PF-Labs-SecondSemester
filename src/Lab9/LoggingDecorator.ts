@@ -1,6 +1,6 @@
 export class Decorator
 {
-    Log(logLevel: LogLevel, event: (...args: any[]) => any[])
+    Log(logLevel: LogLevel, event: (...args: any[]) => any[], formatter)
     {
         return async (...args: any[]) =>
         {
@@ -8,25 +8,56 @@ export class Decorator
             let endDate;
             let executionTime;
 
-            let result;
+            let output;
 
             switch(logLevel)
             {
                 case LogLevel.INFO:
                 {
-                    console.info(`Logging function ${event.name}`);
-                    console.info(`Entry date: ${new Date().toISOString()}`);
-                    console.info(`Log level: [INFO]`);
-                    console.info(`Called with:`, args);
+                    let logInfo: LogInfo;
                     
-                    result = await event(...args);
+                    let caughtError: any = undefined;
 
+                    try {
+                        output = await event(...args);
+                    } catch (error) {
+                        caughtError = error;
+                    }
+
+                    // execution time profiling
                     endDate = Date.now();
                     executionTime = endDate - startDate;
-                    console.info(`Execution time: ${executionTime}ms`);
 
-                    console.info(`returned:`, result);
-                    return result;
+                    logInfo = 
+                    {
+                        functionName: event.name,
+                        entryTime: new Date().toISOString(),
+                        logLevel: logLevel,
+                        arguments: args,
+                        output: output,
+                        executionTime: executionTime,
+                        error: caughtError
+                    }
+
+                    if (!formatter)
+                    {
+                        console.info(`Logging function`, logInfo.functionName);
+                        console.info(`Entry date:`, logInfo.entryTime);
+                        console.info(`Log level:`, logInfo.logLevel);
+                        console.info(`Called with:`, logInfo.arguments);
+
+                        if (logInfo.error)
+                            console.info(`Error caught: ${logInfo.error}`);
+
+                        console.info(`Execution time: ${logInfo.executionTime}ms`);
+                        console.info(`output:`, logInfo.output);
+                    }
+                    else 
+                    {
+                        formatter(logInfo);
+                    }
+
+                    return output;
                 }
 
                 case LogLevel.DEBUG:
@@ -36,23 +67,27 @@ export class Decorator
                     console.debug(`Log level: [DEBUG]`);
                     console.debug(`Called with:`, args);
 
-                    result = await event(...args);
+                    try {
+                        output = await event(...args);
+                    } catch (error) {
+                        console.debug(`Error caught: ${error}`);
+                    }
 
                     // execution time profiling
                     endDate = Date.now();
                     executionTime = endDate - startDate;
                     console.debug(`Execution time: ${executionTime}ms`);
 
-                    console.debug(`returned:`, result);
+                    console.debug(`returned:`, output);
 
-                    return result;
+                    return output;
                 }
 
                 case LogLevel.ERROR:
                 {
                     try 
                     {
-                        result = await event(...args);
+                        output = await event(...args);
                     } 
                     catch (error) 
                     {
@@ -70,8 +105,8 @@ export class Decorator
                         return;
                     }
 
-                    console.log(`returned:`, result);
-                    return result;
+                    console.log(`returned:`, output);
+                    return output;
                 }
             }
         }
@@ -87,6 +122,11 @@ enum LogLevel
 
 type LogInfo = 
 {
-    level: LogLevel;
-
+    entryTime: string,
+    logLevel: LogLevel;
+    functionName: string,
+    arguments: any[],
+    output: any,
+    executionTime:any,
+    error?: any;
 }
