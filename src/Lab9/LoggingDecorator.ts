@@ -40,26 +40,8 @@ export class Decorator
                         error: caughtError
                     }
 
+                    // Log message construction
                     logMessage = this.ConstructLogMessage(logInfo, formatter)
-                    /*
-                    if (!formatter)
-                    {
-                        logMessage = 
-                        {
-                            functionNameMsg: (`Logging function: ${logInfo.functionName}`),
-                            entryTimeMsg: (`Entry date: ${logInfo.entryTime}`),
-                            logLevelMsg: (`Log level: ${logInfo.logLevel}`),
-                            argumentsMsg: (`Called with: ${logInfo.arguments}`),
-                            outputMsg: (`output: ${logInfo.output}`),
-                            executionTimeMsg: (`Execution time: ${logInfo.executionTime}ms`),
-                            errorMsg: logInfo.error ? (`Error caught: ${logInfo.error}`) : undefined
-                        }
-                    }
-                    else 
-                    {
-                        logMessage = formatter(logInfo);
-                    }
-                    */
 
                     console.info(logMessage.functionNameMsg);
                     console.info(logMessage.entryTimeMsg);
@@ -103,6 +85,7 @@ export class Decorator
                         error: caughtError
                     }
 
+                    // Log message construction
                     logMessage = this.ConstructLogMessage(logInfo, formatter)
 
                     console.debug(logMessage.functionNameMsg);
@@ -121,27 +104,47 @@ export class Decorator
 
                 case LogLevel.ERROR:
                 {
-                    try 
-                    {
+                    let logInfo: LogInfo;
+                    let logMessage: LogMessage;
+
+                    let caughtError: any = undefined;
+
+                    try {
                         output = await event(...args);
-                    } 
-                    catch (error) 
-                    {
-                        console.error(`Logging function ${event.name}`);
-                        console.error(`Entry date: ${new Date().toISOString()}`);
-                        console.error(`Log level: [ERROR]`);
-
-                        console.error(`[ERROR] cought with ${args.length} args`, error); // the only useful thing we log basically
-
-                        // execution time profiling
-                        endDate = Date.now();
-                        executionTime = endDate - startDate;
-                        console.error(`Execution time: ${executionTime}ms`);
-
-                        return;
+                    }
+                    catch (error) {
+                        caughtError = error;
                     }
 
-                    console.log(`returned:`, output);
+                    // execution time profiling
+                    endDate = Date.now();
+                    executionTime = endDate - startDate;
+
+                    logInfo =
+                    {
+                        functionName: event.name,
+                        entryTime: new Date().toISOString(),
+                        logLevel: logLevel,
+                        arguments: args,
+                        output: output,
+                        executionTime: executionTime,
+                        error: caughtError
+                    }
+
+                    //Log message construction
+                    logMessage = this.ConstructLogMessage(logInfo, formatter);
+
+                    if (logMessage.errorMsg) 
+                    {
+                        console.error(logMessage.functionNameMsg);
+                        console.error(logMessage.entryTimeMsg);
+                        console.error(logMessage.logLevelMsg);
+                        console.error(logMessage.argumentsMsg);
+                        console.error(logMessage.executionTimeMsg);
+                        console.error(logMessage.outputMsg);
+                        console.error(logMessage.errorMsg);
+                    }
+
                     return output;
                 }
             }
