@@ -1,6 +1,10 @@
+// logging to external services is done if structuredLogging is enabled AND
+// if there is a destinationWriter provided to the Log() function
+
 export class Decorator
 {
-    Log(logLevel: LogLevel, event: (...args: any[]) => any[], formatter?: (info: LogInfo) => LogMessage)
+    static Log(logLevel: LogLevel, event: (...args: any[]) => any[], structuredLogging: boolean,
+        formatter?: (info: LogInfo) => LogMessage, destinationWriter?: (output: string) => void)
     {
         return async (...args: any[]) =>
         {
@@ -41,18 +45,26 @@ export class Decorator
                     }
 
                     // Log message construction
-                    logMessage = this.ConstructLogMessage(logInfo, formatter)
+                    if (structuredLogging)
+                    {
+                        let writer = destinationWriter ?? console.debug;
+                        writer(JSON.stringify(logInfo, null, 2));
+                    }
+                    else
+                    {
+                        logMessage = this.ConstructLogMessage(logInfo, formatter)
 
-                    console.info(logMessage.functionNameMsg);
-                    console.info(logMessage.entryTimeMsg);
-                    console.info(logMessage.logLevelMsg);
-                    console.info(logMessage.argumentsMsg);
+                        console.info(logMessage.functionNameMsg);
+                        console.info(logMessage.entryTimeMsg);
+                        console.info(logMessage.logLevelMsg);
+                        console.info(logMessage.argumentsMsg);
 
-                    console.info(logMessage.executionTimeMsg);
-                    console.info(logMessage.outputMsg);
+                        console.info(logMessage.executionTimeMsg);
+                        console.info(logMessage.outputMsg);
 
-                    if (logMessage.errorMsg)
-                        console.info(logMessage.errorMsg);
+                        if (logMessage.errorMsg)
+                            console.info(logMessage.errorMsg);
+                    }
 
                     return output;
                 }
@@ -86,18 +98,25 @@ export class Decorator
                     }
 
                     // Log message construction
-                    logMessage = this.ConstructLogMessage(logInfo, formatter)
+                    if (structuredLogging)
+                    {
+                        let writer = destinationWriter ?? console.debug;
+                        writer(JSON.stringify(logInfo, null, 2));
+                    }
+                    else
+                    {
+                        logMessage = this.ConstructLogMessage(logInfo, formatter);
 
-                    console.debug(logMessage.functionNameMsg);
-                    console.debug(logMessage.entryTimeMsg);
-                    console.debug(logMessage.logLevelMsg);
-                    console.debug(logMessage.argumentsMsg);
+                        console.debug(logMessage.functionNameMsg);
+                        console.debug(logMessage.entryTimeMsg);
+                        console.debug(logMessage.logLevelMsg);
+                        console.debug(logMessage.argumentsMsg);
+                        console.debug(logMessage.executionTimeMsg);
+                        console.debug(logMessage.outputMsg);
 
-                    console.debug(logMessage.executionTimeMsg);
-                    console.debug(logMessage.outputMsg);
-
-                    if (logMessage.errorMsg)
-                        console.debug(logMessage.errorMsg);
+                        if (logMessage.errorMsg)
+                            console.debug(logMessage.errorMsg);
+                    }
 
                     return output;
                 }
@@ -131,18 +150,29 @@ export class Decorator
                         error: caughtError
                     }
 
-                    //Log message construction
-                    logMessage = this.ConstructLogMessage(logInfo, formatter);
-
-                    if (logMessage.errorMsg) 
+                    // Log message construction
+                    if (structuredLogging)
                     {
-                        console.error(logMessage.functionNameMsg);
-                        console.error(logMessage.entryTimeMsg);
-                        console.error(logMessage.logLevelMsg);
-                        console.error(logMessage.argumentsMsg);
-                        console.error(logMessage.executionTimeMsg);
-                        console.error(logMessage.outputMsg);
-                        console.error(logMessage.errorMsg);
+                        if (caughtError)
+                        {
+                            let writer = destinationWriter ?? console.error;
+                            writer(JSON.stringify(logInfo, null, 2));
+                        }
+                    }
+                    else
+                    {
+                        logMessage = this.ConstructLogMessage(logInfo, formatter);
+
+                        if (logMessage.errorMsg) 
+                        {
+                            console.error(logMessage.functionNameMsg);
+                            console.error(logMessage.entryTimeMsg);
+                            console.error(logMessage.logLevelMsg);
+                            console.error(logMessage.argumentsMsg);
+                            console.error(logMessage.executionTimeMsg);
+                            console.error(logMessage.outputMsg);
+                            console.error(logMessage.errorMsg);
+                        }
                     }
 
                     return output;
@@ -151,7 +181,7 @@ export class Decorator
         }
     }
 
-    ConstructLogMessage(logInfo: LogInfo, formatter?: (info: LogInfo) => LogMessage): LogMessage
+    static ConstructLogMessage(logInfo: LogInfo, formatter?: (info: LogInfo) => LogMessage): LogMessage
     {
         let logMessage: LogMessage;
 
