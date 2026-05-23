@@ -1,3 +1,4 @@
+/*
 import { CalculateAverage } from "rngdebugger";
 import { GenerateRandNumInf } from "./generator";
 import { TimeoutIterator } from "./iterator";
@@ -20,3 +21,9 @@ EventBus.Subscribe('filter', async () => {
 });
 
 EventBus.PromptCommand();
+*/
+
+import { Console } from './Kursova/Console';
+
+const cli = new Console();
+cli.OpenWindow();
