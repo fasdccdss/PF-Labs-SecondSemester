@@ -129,11 +129,47 @@ function SubscribeCommands()
     EventBus.PromptCommand();
 }
 
-/* BLESSED INITIALIZATION */
+////////////////////////////
+// INTERFACE CONSTRUCTION //
+////////////////////////////
+
+/* SCREEN INITIALIZATION */
 const screen = blessed.screen({
     smartCSR: true,
     title: "TUI Console",
     fullUnicode: true,
 });
 
-/* SIDEBAR COMMAND LOOK UP */
+/* SIDEBAR COMMAND LOOK UP TABLE*/
+const lookupSidebar = blessed.box({
+    parent: screen,
+    top: 0, 
+    left: 0,
+    width: "20%",
+    height: "100%",
+    label: " command list ",
+    tags: true,
+    border: { type: "line" },
+    style: 
+    {
+        bg: "#495978",
+        fg: "#e8e8e8",
+        border: "#ff6060",
+        label: "#ff6060",
+        scrollbar: "#ff6060",
+    },
+    scrollable: true,
+    alwaysScroll: true,
+    keys: true,
+    vi: true,
+    mouse: true,
+    scrollbar: { ch: " ", style: { bg: "#ff6060" } },
+    padding: { left: 1, right: 1 }
+});
+// command text
+function DrawLookupSidebar()
+{
+    let text: string;
+}
+
+screen.render(); // renders the window..
