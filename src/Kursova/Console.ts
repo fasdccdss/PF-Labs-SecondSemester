@@ -21,8 +21,9 @@ export type Command =
 {
     params?: CommandParam[]; // params that command expects (<num1> <num2>)
 
-    command: string; // command itself, for example /add <num1> <num2>
-    syntax: string; // command syntax example, example: /add <num> <num>
+    base: string; // base of the command, example: /add
+    command: string; // command itself, constructed by adding names of params to the base, example: /add <num1> <num2>
+    syntax: string; // command syntax, example: /add <int> <int>
     description: string; // description of what this command does
 }
 
@@ -57,13 +58,13 @@ function DefineCommand(
         syntax = `${base} ${paramTypes.trim()}`;
     }
 
-    return { params, command,  syntax, description };
+    return { base, params, command,  syntax, description };
 };
 
 // helper that converts each defined "CommandParam" in "Command" to an
 // object with its name and type fetched from its respective "CommandParam"
 // this is integrated to provide type control when subscriding a command
-type ResolveParams<T extends CommandParam[]> = {
+export type ResolveParams<T extends CommandParam[]> = {
     [K in T[number]as K["name"]]: ParamType[K["type"]];
 };
 
