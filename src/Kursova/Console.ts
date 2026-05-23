@@ -115,17 +115,17 @@ function SubscribeCommands()
     EventBus.SubscribeCommand(CommandList.randomInRange, (params) => {
         var intInRange = RandIntInRange(params.min, params.max);
         logBox.log(`Random int in range ${params.min}-${params.max}: ${intInRange}`);
-        screen.render;
+        screen.render();
     });
     // clear
     EventBus.SubscribeCommand(CommandList.clear, (params) => {
         logBox.setContent(""); // clears the log
-        screen.render;
+        screen.render();
     });
     // exit
     EventBus.SubscribeCommand(CommandList.exit, (params) => {
         logBox.log("haven't implemented yet");
-        screen.render;
+        screen.render();
     });
 }
 
@@ -150,6 +150,7 @@ const background = blessed.box({
         bg: "#1c1c1c"
     }
 });
+
 
 /* SIDEBAR COMMAND LOOK UP TABLE*/
 const lookupTable = blessed.box({
@@ -232,10 +233,49 @@ const logBox = blessed.log({
     mouse: true,
     scrollbar: { ch: " ", style: { bg: "#e8e8e8" } },
     padding: { left: 1 },
-})
+});
 
 /* INPUT BAR */
+const inputBar = blessed.textbox({
+    parent: screen,
+    bottom: 0,
+    left: 30,
+    width: "100%-30",
+    height: 3,
+    label: " input ",
+    tags: true,
+    border: { type: "line"},
+    style: {
+        bg: "#080808",
+        fg: "#e8e8e8",
+        border: { bg: "#080808", fg: "#e8e8e8" },
+        label: { bg: "#080808", fg: "#e8e8e8" },
+    },
+    inputOnFocus: true, // enables typing
+    mouse: true,
+    padding: { left: 1 },
+});
 
-DrawLookupTable()
+// turning input bar on
+inputBar.on("submit", (value: string) => {
+    const trimmed = value.trim();
+
+    if (trimmed) {
+        logBox.log(`{bold}{lime-fg}> ${trimmed}{/lime-fg}{/bold}`);
+        EventBus.DispatchRaw(trimmed);
+    }
+
+    inputBar.clearValue();
+    inputBar.focus();
+    inputBar.readInput();
+    screen.render();
+});
+
+/* FINAL PASS */
+screen.key(["Esc"], () => process.exit(0)); // subscribe an exit to input bar
+inputBar.focus(); // enter input bar at start
+
+SubscribeCommands(); // register all commands
+DrawLookupTable(); // draw lookup
 
 screen.render(); // renders the window..
