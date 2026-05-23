@@ -137,39 +137,74 @@ function SubscribeCommands()
 const screen = blessed.screen({
     smartCSR: true,
     title: "TUI Console",
-    fullUnicode: true,
+    fullUnicode: true
+});
+// 
+const background = blessed.box({
+    parent: screen,
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    style: {
+        bg: "#1c1c1c"
+    }
 });
 
 /* SIDEBAR COMMAND LOOK UP TABLE*/
-const lookupSidebar = blessed.box({
+const lookupTable = blessed.box({
     parent: screen,
     top: 0, 
     left: 0,
-    width: "20%",
+    width: 30,
     height: "100%",
     label: " command list ",
     tags: true,
     border: { type: "line" },
     style: 
     {
-        bg: "#495978",
+        bg: "#1c1c1c",
         fg: "#e8e8e8",
-        border: "#ff6060",
-        label: "#ff6060",
-        scrollbar: "#ff6060",
+        border: { bg: "#121212", fg: "#ff0000" },
+        label: { bg: "#121212", fg: "#ff0000" },
+        scrollbar: { bg: "#121212", fg: "#ff0000" },
     },
     scrollable: true,
     alwaysScroll: true,
     keys: true,
     vi: true,
     mouse: true,
-    scrollbar: { ch: " ", style: { bg: "#ff6060" } },
+    scrollbar: { ch: " ", style: { bg: "#ff0000" } },
     padding: { left: 1, right: 1 }
 });
 // command text
-function DrawLookupSidebar()
+function DrawLookupTable()
 {
-    let text: string;
+    const commands = Object.values(CommandList) as Command[];
+    const separatorWidth = 25;
+    const separator = "─".repeat(separatorWidth);
+
+    const lines = commands.map(cmd => 
+    {
+        const finalText: string[] = [];
+
+        finalText.push(`{bold}${cmd.command}{/bold}`);
+
+        for (const param of cmd.params) 
+        {
+            finalText.push(`{#aaaaaa-fg}  ${param.name}: ${param.type}{/#aaaaaa-fg}`);
+        }
+
+        finalText.push(cmd.description);
+
+        return finalText.join("\n");
+    });
+
+    // join each command block with a blank line + separator + blank line
+    lookupTable.setContent(lines.join(`\n${separator}\n`));
+    screen.render();
 }
+
+DrawLookupTable()
 
 screen.render(); // renders the window..
