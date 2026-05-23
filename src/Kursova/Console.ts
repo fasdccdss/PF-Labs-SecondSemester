@@ -19,7 +19,7 @@ export type CommandParam =
 
 export type Command = 
 {
-    params?: CommandParam[]; // params that command expects (<num1> <num2>)
+    params: CommandParam[]; // params that command expects (<num1> <num2>)
 
     base: string; // base of the command, example: /add
     command: string; // command itself, constructed by adding names of params to the base, example: /add <num1> <num2>
@@ -29,11 +29,11 @@ export type Command =
 
 // DefineCommands method allows for robust command definition, with predetermined variables and their types,
 // to avoid re-typing those things and possibly fucking them up
-function DefineCommand(
+function DefineCommand<const T extends CommandParam[]>(
     base: string,
     description: string,
-    params: CommandParam[] = []
-): Command 
+    params: T = [] as unknown as T
+): Command & { params: T }
 {
     let command: string;
     let syntax: string;
@@ -70,16 +70,8 @@ export type ResolveParams<T extends CommandParam[]> = {
 
 /* COMMAND LIST */ 
 class CommandList {
-    
-    /*
-    {
-        command: "",
-        syntax: "",
-        description: ""
-    }
-    */
 
-    randomInRange = DefineCommand(
+    static randomInRange = DefineCommand(
         "/randomInRange", 
         "Generates a random number in range between <min> and <max>",
         [
@@ -88,46 +80,52 @@ class CommandList {
         ]
     );
 
-    memoize: Command = 
-    {
-        command: "/memoize",
-        syntax: "",
-        description: ""
-    }
+    static memoize = DefineCommand(
+        "/memoize",
+        "Caches the provided function",
+        [
+            // some form of function here
+        ]
+    );
 
+    /*
     filter: Command = 
     {
         command: "/filter",
         syntax: "",
         description: ""
     }
+    */
 
-    clear: Command = 
-    {
-        command: "/clear",
-        syntax: "",
-        description: ""
-    }
+    static clear = DefineCommand(
+        "/clear",
+        "Clears the console"
+    );
 
-    exit: Command = 
-    {
-        command: "/exit",
-        syntax: "",
-        description: ""
-    }
+    static exit = DefineCommand(
+        "/exit",
+        "Exits the console"
+    );
 }
 
 /* COMMAND SUBSCRIPTION */
 function SubscribeCommands()
 {
-    EventBus.Subscribe(, () => {
-        console.log('Hello!');
+    // random int in range
+    EventBus.SubscribeCommand(CommandList.randomInRange, (params) => {
+        var intInRange = RandIntInRange(params.min, params.max);
+        console.log(`Random int in range ${params.min}-${params.max}:`, intInRange);
+    });
+    // clear
+    EventBus.SubscribeCommand(CommandList.clear, (params) => {
+        console.clear();
+    });
+    // exit
+    EventBus.SubscribeCommand(CommandList.exit, (params) => {
+        console.log("haven't implemented yet");
     });
 
-    EventBus.Subscribe(, () => {
-        RandIntInRange
-    });
-
+    // start the event bus
     EventBus.PromptCommand();
 }
 
