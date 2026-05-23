@@ -29,6 +29,12 @@ export namespace EventBus
         return result;
     }
 
+    export function DispatchRaw(input: string) // accepts trimmed command line
+    {
+        const [base, ...rawArgs] = input.trim().split(/\s+/);
+        emitter.emit(base, rawArgs);
+    }
+
     export function SubscribeCommand<T extends CommandParam[]>(
         command: Command & { params: T },
         handler: (params: ResolveParams<T>) => void

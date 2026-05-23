@@ -114,19 +114,19 @@ function SubscribeCommands()
     // random int in range
     EventBus.SubscribeCommand(CommandList.randomInRange, (params) => {
         var intInRange = RandIntInRange(params.min, params.max);
-        console.log(`Random int in range ${params.min}-${params.max}:`, intInRange);
+        logBox.log(`Random int in range ${params.min}-${params.max}: ${intInRange}`);
+        screen.render;
     });
     // clear
     EventBus.SubscribeCommand(CommandList.clear, (params) => {
-        console.clear();
+        logBox.setContent(""); // clears the log
+        screen.render;
     });
     // exit
     EventBus.SubscribeCommand(CommandList.exit, (params) => {
-        console.log("haven't implemented yet");
+        logBox.log("haven't implemented yet");
+        screen.render;
     });
-
-    // start the event bus
-    EventBus.PromptCommand();
 }
 
 ////////////////////////////
@@ -208,6 +208,33 @@ function DrawLookupTable()
     lookupTable.setContent(lines.join(`\n${separator}\n`));
     screen.render();
 }
+
+/* LOG BOX */
+const logBox = blessed.log({
+    parent: screen,
+    top: 0,
+    left: 30,
+    width: "100%-30",
+    height: "100%-3",
+    label: " output ",
+    tags: true,
+    border: { type: "line" },
+    style: {
+        bg: "#080808",
+        fg: "#e8e8e8",
+        border: { bg: "#080808", fg: "#e8e8e8" },
+        label: { bg: "#080808", fg: "#e8e8e8" },
+        scrollbar: { bg: "#e8e8e8" }
+    },
+    scrollable: true,
+    alwaysScroll: true,
+    keys: true,
+    mouse: true,
+    scrollbar: { ch: " ", style: { bg: "#e8e8e8" } },
+    padding: { left: 1 },
+})
+
+/* INPUT BAR */
 
 DrawLookupTable()
 
