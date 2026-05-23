@@ -177,7 +177,7 @@ const lookupTable = blessed.box({
     scrollbar: { ch: " ", style: { bg: "#ff0000" } },
     padding: { left: 1, right: 1 }
 });
-// command text
+// draw text to the command look up table
 function DrawLookupTable()
 {
     const commands = Object.values(CommandList) as Command[];
@@ -188,14 +188,18 @@ function DrawLookupTable()
     {
         const finalText: string[] = [];
 
-        finalText.push(`{bold}${cmd.command}{/bold}`);
+        finalText.push(""); // add some space
+        finalText.push(`{bold}${cmd.command}{/bold}`); // draws the command
+        finalText.push(""); // add some space
 
-        for (const param of cmd.params) 
+        for (const param of cmd.params) // loops over and draws each param of the command
         {
             finalText.push(`{#aaaaaa-fg}  ${param.name}: ${param.type}{/#aaaaaa-fg}`);
         }
+        finalText.push(""); // add some space
 
-        finalText.push(cmd.description);
+        finalText.push("Description:", cmd.description); // draws the description
+        finalText.push(""); // add some space
 
         return finalText.join("\n");
     });
