@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import * as readline from 'node:readline';
+import { Command, CommandParam } from './Kursova/Console';
 
 export namespace EventBus 
 {
@@ -12,6 +13,11 @@ export namespace EventBus
 
     export function Subscribe(command: string, event: (...args: any[]) => void) {
         emitter.on(command, event);
+    }
+
+    export function SubscribeCommand<T extends CommandParam[]>(command: Command & {params: T})
+    {
+
     }
 
     export function Unsubscribe(command: string, event: (...args: any[]) => void) {
