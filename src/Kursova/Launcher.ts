@@ -20,19 +20,15 @@ function openInNewWindow(): void {
          */
         spawn(
             "cmd",
-            ["/c", "start", "powershell", "-NoExit", "-Command",
-                `npx ts-node "${scriptPath}"`],
-            {
-                detached: true,   // новый процесс живёт независимо от родителя
-                stdio: "ignore",  // не наследовать stdin/stdout/stderr
-            }
-        ).unref(); // unref() — родитель не ждёт завершения дочернего процесса
+            ["/c", "start", "cmd", "/k", `npx tsx ${scriptPath}`],
+            { detached: true, stdio: "ignore" }
+        ).unref();
 
     } else {
         spawn(
             "xterm",
             ["-e", `npx ts-node "${scriptPath}"`],
-            { detached: true, stdio: "ignore" }
+            { detached: true, stdio: "inherit" }
         ).unref();
     }
 }

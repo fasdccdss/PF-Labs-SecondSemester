@@ -137,7 +137,8 @@ function SubscribeCommands()
 const screen = blessed.screen({
     smartCSR: true,
     title: "TUI Console",
-    fullUnicode: true
+    fullUnicode: true,
+    mouse: true
 });
 // 
 const background = blessed.box({
@@ -214,9 +215,9 @@ function DrawLookupTable()
 const logBox = blessed.log({
     parent: screen,
     top: 0,
+    bottom: 3,
     left: 30,
     width: "100%-30",
-    height: "100%-3",
     label: " output ",
     tags: true,
     border: { type: "line" },
@@ -261,7 +262,7 @@ inputBar.on("submit", (value: string) => {
     const trimmed = value.trim();
 
     if (trimmed) {
-        logBox.log(`{bold}{lime-fg}> ${trimmed}{/lime-fg}{/bold}`);
+        logBox.log(`{bold}> ${trimmed}{/bold}`);
         EventBus.DispatchRaw(trimmed);
     }
 
@@ -274,6 +275,7 @@ inputBar.on("submit", (value: string) => {
 /* FINAL PASS */
 screen.key(["Esc"], () => process.exit(0)); // subscribe an exit to input bar
 inputBar.focus(); // enter input bar at start
+inputBar.readInput(); // start capturing keystrokes
 
 SubscribeCommands(); // register all commands
 DrawLookupTable(); // draw lookup

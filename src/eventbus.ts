@@ -6,10 +6,14 @@ export namespace EventBus
 {
     const emitter = new EventEmitter();
 
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
+    let rl: readline.Interface | null = null;
+
+    function getRL(): readline.Interface {
+        if (!rl) {
+            rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        }
+        return rl;
+    }
 
     const TYPE_COERCIONS: Record<string, (v: string) => unknown> = 
     {
@@ -59,6 +63,7 @@ export namespace EventBus
     }
 
     export function PromptCommand() {
+        const rl = getRL();
         rl.question('Enter command: ', (command) => {
             command = command.trim();
 
