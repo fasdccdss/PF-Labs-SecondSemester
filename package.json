@@ -17,6 +17,7 @@
   "dependencies": {
     "@types/blessed": "^0.1.27",
     "blessed": "^0.1.81",
+    "neo-blessed": "^0.2.0",
     "rngdebugger": "file:RNGdebugger"
   }
 }

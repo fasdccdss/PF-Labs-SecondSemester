@@ -1,5 +1,5 @@
 import { EventBus } from '../eventbus';
-import * as blessed from "blessed";
+import * as blessed from "neo-blessed";
 import { RandIntInRange } from '../generator';
 
 /* COMMAND DEFINITION */
@@ -138,8 +138,10 @@ const screen = blessed.screen({
     smartCSR: true,
     title: "TUI Console",
     fullUnicode: true,
-    mouse: true
+    mouse: true,
+    terminal: "xterm-256color"
 });
+screen.enableMouse();
 // 
 const background = blessed.box({
     parent: screen,
