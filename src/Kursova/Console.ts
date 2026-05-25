@@ -1,6 +1,7 @@
 import { EventBus } from '../eventbus';
 import * as blessed from "neo-blessed";
-import { RandIntInRange } from '../generator';
+import { GenerateRandNum, RandIntInRange } from '../generator';
+import { AsyncFilter } from '../asyncfilter';
 
 /* COMMAND DEFINITION */
 type ParamType = 
@@ -71,8 +72,8 @@ export type ResolveParams<T extends CommandParam[]> = {
 /* COMMAND LIST */ 
 class CommandList {
 
-    static randomInRange = DefineCommand(
-        "/randomInRange", 
+    static randomIntInRange = DefineCommand(
+        "/randomIntInRange", 
         "Generates a random number in range between <min> and <max>",
         [
             { name: "min", type: "int" },
@@ -80,11 +81,11 @@ class CommandList {
         ]
     );
 
-    static memoize = DefineCommand(
-        "/memoize",
-        "Caches the provided function",
+    static asyncFilter = DefineCommand(
+        "/asyncFilter",
+        "generates a random array of <size> numbers, between 1 and 10, filters it with the random async predicate, logs the result",
         [
-            // some form of function here
+            { name: "size", type: "int" }
         ]
     );
 
@@ -112,9 +113,23 @@ class CommandList {
 function SubscribeCommands()
 {
     // random int in range
-    EventBus.SubscribeCommand(CommandList.randomInRange, (params) => {
+    EventBus.SubscribeCommand(CommandList.randomIntInRange, (params) => {
         var intInRange = RandIntInRange(params.min, params.max);
         logBox.log(`Random int in range ${params.min}-${params.max}: ${intInRange}`);
+        screen.render();
+    });
+    // async filter
+    EventBus.SubscribeCommand(CommandList.asyncFilter, async (params) => 
+    {
+        let randArray: number[] = [];
+
+        for (let x = 0; x < params.size; x++)
+            randArray.push(RandIntInRange(1, 10));
+
+        logBox.log(`Filtering ${params.size} numbers...`);
+        const result = await AsyncFilter.asyncFilterPromise(randArray, AsyncFilter.randomElement);
+        logBox.log(`Result (${result.length} passed): ${result.join(", ")}`);
+
         screen.render();
     });
     // clear
@@ -124,8 +139,8 @@ function SubscribeCommands()
     });
     // exit
     EventBus.SubscribeCommand(CommandList.exit, (params) => {
-        logBox.log("haven't implemented yet");
-        screen.render();
+        screen.destroy();
+        process.exit(0);
     });
 }
 
